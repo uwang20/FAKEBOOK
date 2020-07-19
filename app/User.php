@@ -202,6 +202,7 @@ class User extends Authenticatable
 
           return collect($comment)->merge([
             'name' => $commentBy,
+            'avatar_url' => $this->profileIcon()
           ]);
         });
 

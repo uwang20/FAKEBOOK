@@ -84,7 +84,10 @@ class UserController extends Controller
     public function showPosts(User $user){
       $modProfile = collect($user->getModifiedProfilePictures())->map(function ($prof){
         return collect($prof)->merge([
-          'images' => [['image' => $prof['profile_picture']]],
+          'images' => [
+            ['image' => $prof['profile_picture'],
+            'id' => $prof['id']]
+          ],
           'body' => $prof['caption'],
           'posted_by_id' => $prof['user_id'],
           'post_type' => 'profile',

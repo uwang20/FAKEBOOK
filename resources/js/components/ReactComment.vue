@@ -80,12 +80,14 @@
         <!-- modal-reactor -->
 
         <!-- comments view  no implementaion for now-->
-        <div class="comments-count" v-show="post.comments" @click="showComments(post.id)">{{post.comments.length + ' comments'}}</div>
+        <div class="comments-count" v-if="post.comments && post.post_type==='post'" @click="showComments(post.id)">{{post.comments.length + ' comments'}}</div>
         <!-- comments view  -->
       </div>
-      <div class="comments" v-show="post.show_comments">
-        <div class="comment" v-for="(comment,index) in post.comments" :key="index">
-          <div class="avatar" ></div>
+      <div class="comments" v-if="post.show_comments && post.post_type==='post'">
+        <div class="comment" v-for="(comment,index) in post.comments" :key="index" v-show="index < pageLimit">
+          <div class="avatar" :style="{ backgroundImage: `url(${'/storage/'+comment.avatar_url})`}">
+
+          </div>
           <div class="user-comment-container">
             <div class="user-comment">
               <p class="name reset">{{comment.name}}</p>
@@ -98,6 +100,9 @@
             </div>
           </div>
         </div>
+        <div class="" style="text-align: center; cursor: pointer; font-weight: 600; color: rgba(0,0,0,0.6)" @click="loadMoreComment" v-show="pageLimit < post.comments.length">
+          load more comments
+        </div>
       </div>
       <hr class="mx-2 my-0">
 
@@ -106,47 +111,54 @@
         <div @mouseenter="showIcons(post.id)" @mouseleave="hideIcons" class="like">
           <!-- reacts container - hover to show -->
           <div v-show="post.id == showReactIcons" class="reacts-icons">
-            <div @click="reactPost('Like',post.id,post.post_type)" class="like-icon">
+            <div @click="reactPost('Like',post.id,post.post_type,post.show_comments)" class="like-icon">
               <img src="/images/like.png" alt="like" style="width: 50px;" class="icon">
             </div>
-            <div @click="reactPost('Love',post.id,post.post_type)" class="love-icon">
+            <div @click="reactPost('Love',post.id,post.post_type,post.show_comments)" class="love-icon">
               <img src="/images/love.png" alt="love" style="width: 50px;" class="icon">
             </div>
-            <div @click="reactPost('Care',post.id,post.post_type)" class="care-icon">
+            <div @click="reactPost('Care',post.id,post.post_type,post.show_comments)" class="care-icon">
               <img src="/images/care.png" alt="care" style="width: 50px;" class="icon">
             </div>
-            <div @click="reactPost('Haha',post.id,post.post_type)" class="haha-icon">
+            <div @click="reactPost('Haha',post.id,post.post_type,post.show_comments)" class="haha-icon">
               <img src="/images/haha.png" alt="haha" style="width: 50px;" class="icon">
             </div>
-            <div @click="reactPost('Wow',post.id,post.post_type)" class="wow-icon">
+            <div @click="reactPost('Wow',post.id,post.post_type,post.show_comments)" class="wow-icon">
               <img src="/images/wow.png" alt="wow" style="width: 50px;" class="icon">
             </div>
-            <div @click="reactPost('Sad',post.id,post.post_type)" class="sad-icon">
+            <div @click="reactPost('Sad',post.id,post.post_type,post.show_comments)" class="sad-icon">
               <img src="/images/sad.png" alt="sad" style="width: 50px;" class="icon">
             </div>
-            <div @click="reactPost('Angry',post.id,post.post_type)" class="angry-icon">
+            <div @click="reactPost('Angry',post.id,post.post_type,post.show_comments)" class="angry-icon">
               <img src="/images/angry.png" alt="angry" style="width: 50px;" class="icon">
             </div>
           </div>
           <!-- reacts container - hover to show -->
 
           <!-- show when you reacted a post -->
-          <span @click="unreact(post.id,post.post_type)" v-if="post.reacted" :class="'react react-'+post.chosen_react">
+          <span @click="unreact(post.id,post.post_type,post.show_comments)" v-if="post.reacted" :class="'react react-'+post.chosen_react">
             <img  v-for="(reactIcon,index) in reactIcons" :key="index" v-show="post.chosen_react === reactIcon.react" :src="reactIcon.imageUrl" :alt="reactIcon.react" style="width: 30px; margin-right: 10px">
             {{ post.chosen_react}}
           </span>
           <!-- show when you reacted a post -->
 
           <!-- react icon - click to react -->
-          <span @click="reactPost('Like',post.id,post.post_type)" v-else style="display: flex; align-items: center;">
+          <span @click="reactPost('Like',post.id,post.post_type,post.show_comments)" v-else style="display: flex; align-items: center;">
             <img src="/images/like-line.png" alt="like-line" style="width: 30px; margin-right: 10px">
             <span>LIKE</span>
           </span>
           <!-- react icon - click to react -->
         </div>
         <!-- react button - click to react -->
-        <div class="comment">COMMENT</div>
+        <div class="comment" @click="showCommentBox(post.id)">COMMENT</div>
         <div class="share">SHARE</div>
+      </div>
+
+      <div class="put-comment" v-show="showCommentBoxIndex === post.id">
+        <textarea class="comment-box" type="text" name="body" placeholder="Comment something" v-model="userComment" @keydown.enter.prevent="postComment(post.id,post.show_comments)"></textarea>
+        <div class="btn-wrapper">
+          <button type="button" class="btn btn-primary" @click="postComment(post.id,post.show_comments,post.comments.length)">comment</button>
+        </div>
       </div>
 
     </div>
@@ -179,6 +191,14 @@
         isNotAuth: {
           type: Number,
           require: true
+        },
+        showCommentBoxIndex: {
+          type: Number,
+          require: true
+        },
+        comment: {
+          type: String,
+          require: true
         }
       },
       data(){
@@ -191,7 +211,9 @@
             {react:'Wow',imageUrl: '/images/wow.png'},
             {react:'Sad',imageUrl: '/images/sad.png'},
             {react:'Angry',imageUrl: '/images/angry.png'}
-          ]
+          ],
+          userComment: '',
+          pageLimit: 5
         }
       },
       methods: {
@@ -213,17 +235,29 @@
         hideIcons(){
           this.$emit('hideIcons')
         },
-        reactPost(react,postId,postType){
-          this.$emit('reactPost',react,postId,postType)
+        reactPost(react,postId,postType,commentBool){
+          this.$emit('reactPost',react,postId,postType,commentBool)
         },
-        unreact(postId,postType){
-          this.$emit('unreact',postId,postType)
+        unreact(postId,postType,commentBool){
+          this.$emit('unreact',postId,postType,commentBool)
         },
         formatDate(date){
             return moment(date).fromNow()
         },
         showComments(id){
+          this.pageLimit = 5
           this.$emit('showComments',id)
+        },
+        showCommentBox(id){
+          this.$emit('showCommentBox',id)
+        },
+        postComment(postId,commentBool,commentCount){
+          this.pageLimit = commentCount+1
+          this.$emit('postComment',postId,this.userComment,commentBool)
+          this.userComment = ''
+        },
+        loadMoreComment(){
+          return this.pageLimit += 5
         }
       },
       computed: {
@@ -245,7 +279,9 @@
       margin-bottom: 20px;
 
       .avatar{
-        background-color: green;
+        background-position: center;
+        background-size: cover;
+        background-repeat: no-repeat;
         border-radius: 50%;
         margin-right: 15px;
       }
@@ -506,6 +542,10 @@
       }
     }
 
+    .comments-count{
+      cursor: pointer;
+    }
+
   }
 
   .set-react-comment{
@@ -580,6 +620,32 @@
       }
 
     }
+  }
+
+  .put-comment{
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+
+      textarea{
+          height: 5.5rem;
+          outline: none;
+          border: none;
+          resize: none;
+          padding: 6px;
+          border-radius: 10px;
+          background-color: #F0F0F0;
+      }
+
+      .btn-wrapper{
+          margin-top: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          padding: 0;
+
+
+      }
   }
 }
 </style>

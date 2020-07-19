@@ -2068,6 +2068,10 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
 //
 //
 //
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   components: {
@@ -2146,7 +2150,8 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
       showReactIcons: null,
       modalPostId: null,
       reactName: null,
-      allReactors: 'all'
+      allReactors: 'all',
+      showCommentBoxIndex: null
     };
   },
   computed: {
@@ -2335,7 +2340,7 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
         _this8.showReactIcons = null;
       }, 50);
     },
-    reactPost: function reactPost(choseReact, postId, postType) {
+    reactPost: function reactPost(choseReact, postId, postType, commentBool) {
       var _this9 = this;
 
       var config = {
@@ -2350,6 +2355,12 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
             react: choseReact
           }, config).then(function (res) {
             _this9.posts = res.data;
+
+            _this9.posts.forEach(function (post) {
+              if (post.id === postId) {
+                return post.show_comments = commentBool;
+              }
+            });
           });
           break;
 
@@ -2372,7 +2383,7 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
 
       this.showReactIcons = null;
     },
-    unreact: function unreact(postId, postType) {
+    unreact: function unreact(postId, postType, commentBool) {
       var _this10 = this;
 
       var config = {
@@ -2385,6 +2396,12 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
         case 'post':
           axios["delete"]("/post/unreact/".concat(postId), config).then(function (res) {
             _this10.posts = res.data;
+
+            _this10.posts.forEach(function (post) {
+              if (post.id === postId) {
+                return post.show_comments = commentBool;
+              }
+            });
           });
           break;
 
@@ -2422,9 +2439,81 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
     showComments: function showComments(id) {
       this.posts.forEach(function (post) {
         if (post.id === id) {
-          return post.show_comments = true;
+          return post.show_comments = !post.show_comments;
         }
       });
+    },
+    showCommentBox: function showCommentBox(id) {
+      this.showCommentBoxIndex = id;
+    },
+    postComment: function postComment(id, comment, commentBool) {
+      var _this11 = this;
+
+      return _asyncToGenerator( /*#__PURE__*/_babel_runtime_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.mark(function _callee4() {
+        var config, commentResponse, responseData, getPosts, postsData;
+        return _babel_runtime_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.wrap(function _callee4$(_context4) {
+          while (1) {
+            switch (_context4.prev = _context4.next) {
+              case 0:
+                if (comment.trim().length) {
+                  _context4.next = 2;
+                  break;
+                }
+
+                return _context4.abrupt("return");
+
+              case 2:
+                config = {
+                  headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                  }
+                };
+                _context4.next = 5;
+                return axios.post("/post/".concat(id, "/comment"), {
+                  comment: comment.trim(),
+                  comment_by: _this11.authUser
+                }, config);
+
+              case 5:
+                commentResponse = _context4.sent;
+                _context4.next = 8;
+                return commentResponse.data;
+
+              case 8:
+                responseData = _context4.sent;
+                _context4.next = 11;
+                return axios.get("/users/".concat(parseInt(_this11.userId.id), "/posts"));
+
+              case 11:
+                getPosts = _context4.sent;
+                _context4.next = 14;
+                return getPosts.data;
+
+              case 14:
+                postsData = _context4.sent;
+                _this11.posts = postsData;
+
+                _this11.posts.forEach(function (post) {
+                  if (post.id === id) {
+                    return post.show_comments = commentBool;
+                  }
+                }); // this.posts.forEach(post => {
+                //   if(post.id === id){
+                //     post.comments.push({
+                //       comment: responseData.comment,
+                //       name:  responseData.name
+                //     })
+                //   }
+                // })
+
+
+              case 17:
+              case "end":
+                return _context4.stop();
+            }
+          }
+        }, _callee4);
+      }))();
     }
   }
 });
@@ -3343,6 +3432,18 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 /* harmony default export */ __webpack_exports__["default"] = ({
   name: 'ReactComment',
   props: {
@@ -3369,6 +3470,14 @@ __webpack_require__.r(__webpack_exports__);
     isNotAuth: {
       type: Number,
       require: true
+    },
+    showCommentBoxIndex: {
+      type: Number,
+      require: true
+    },
+    comment: {
+      type: String,
+      require: true
     }
   },
   data: function data() {
@@ -3394,7 +3503,9 @@ __webpack_require__.r(__webpack_exports__);
       }, {
         react: 'Angry',
         imageUrl: '/images/angry.png'
-      }]
+      }],
+      userComment: '',
+      pageLimit: 5
     };
   },
   methods: {
@@ -3416,17 +3527,29 @@ __webpack_require__.r(__webpack_exports__);
     hideIcons: function hideIcons() {
       this.$emit('hideIcons');
     },
-    reactPost: function reactPost(react, postId, postType) {
-      this.$emit('reactPost', react, postId, postType);
+    reactPost: function reactPost(react, postId, postType, commentBool) {
+      this.$emit('reactPost', react, postId, postType, commentBool);
     },
-    unreact: function unreact(postId, postType) {
-      this.$emit('unreact', postId, postType);
+    unreact: function unreact(postId, postType, commentBool) {
+      this.$emit('unreact', postId, postType, commentBool);
     },
     formatDate: function formatDate(date) {
       return moment(date).fromNow();
     },
     showComments: function showComments(id) {
+      this.pageLimit = 5;
       this.$emit('showComments', id);
+    },
+    showCommentBox: function showCommentBox(id) {
+      this.$emit('showCommentBox', id);
+    },
+    postComment: function postComment(postId, commentBool, commentCount) {
+      this.pageLimit = commentCount + 1;
+      this.$emit('postComment', postId, this.userComment, commentBool);
+      this.userComment = '';
+    },
+    loadMoreComment: function loadMoreComment() {
+      return this.pageLimit += 5;
     }
   },
   computed: {}
@@ -8061,7 +8184,7 @@ exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loa
 
 
 // module
-exports.push([module.i, ".wrapper[data-v-ff5f586a], *[data-v-ff5f586a] {\n  box-sizing: border-box;\n}\n.wrapper > .comments[data-v-ff5f586a], * > .comments[data-v-ff5f586a] {\n  border-top: 2px solid #9C9C9C;\n  padding: 20px;\n}\n.wrapper > .comments .comment[data-v-ff5f586a], * > .comments .comment[data-v-ff5f586a] {\n  display: flex;\n  margin-bottom: 20px;\n}\n.wrapper > .comments .comment .avatar[data-v-ff5f586a], * > .comments .comment .avatar[data-v-ff5f586a] {\n  background-color: green;\n  border-radius: 50%;\n  margin-right: 15px;\n}\n.wrapper > .comments .comment .user-comment-container[data-v-ff5f586a], * > .comments .comment .user-comment-container[data-v-ff5f586a] {\n  flex: 1;\n}\n.wrapper > .comments .comment .user-comment-container .user-comment[data-v-ff5f586a], * > .comments .comment .user-comment-container .user-comment[data-v-ff5f586a] {\n  background-color: #E2E2E2;\n  border-radius: 24px;\n  padding: 14px 18px;\n  display: inline-block;\n}\n.wrapper > .comments .comment .user-comment-container .user-comment .reset[data-v-ff5f586a], * > .comments .comment .user-comment-container .user-comment .reset[data-v-ff5f586a] {\n  margin: 0;\n  padding: 0;\n}\n.wrapper > .comments .comment .user-comment-container .user-comment .name[data-v-ff5f586a], * > .comments .comment .user-comment-container .user-comment .name[data-v-ff5f586a] {\n  font-weight: 600;\n  margin-bottom: 5px;\n}\n.wrapper > .comments .comment .user-comment-container .user-comment .comment[data-v-ff5f586a], * > .comments .comment .user-comment-container .user-comment .comment[data-v-ff5f586a] {\n  font-weight: 400;\n  font-size: 0.9rem;\n}\n.wrapper > .comments .comment .user-comment-container .others[data-v-ff5f586a], * > .comments .comment .user-comment-container .others[data-v-ff5f586a] {\n  display: flex;\n  margin-top: 5px;\n  margin-left: 20px;\n}\n.wrapper > .comments .comment .user-comment-container .others .time[data-v-ff5f586a], * > .comments .comment .user-comment-container .others .time[data-v-ff5f586a] {\n  color: #656565;\n  font-weight: bold;\n  margin-right: 25px;\n}\n.wrapper > .comments .comment .user-comment-container .others .like[data-v-ff5f586a], .wrapper > .comments .comment .user-comment-container .others .reply[data-v-ff5f586a], * > .comments .comment .user-comment-container .others .like[data-v-ff5f586a], * > .comments .comment .user-comment-container .others .reply[data-v-ff5f586a] {\n  color: #5A5A5A;\n  font-weight: 600;\n  margin-right: 25px;\n}\n.wrapper .reacts-comments[data-v-ff5f586a], * .reacts-comments[data-v-ff5f586a] {\n  display: flex;\n  justify-content: space-between;\n  padding: 15px 20px;\n}\n.wrapper .reacts-comments .reacts[data-v-ff5f586a], * .reacts-comments .reacts[data-v-ff5f586a] {\n  display: flex;\n  align-items: center;\n}\n.wrapper .reacts-comments .reacts .majorities[data-v-ff5f586a], * .reacts-comments .reacts .majorities[data-v-ff5f586a] {\n  display: flex;\n  align-items: center;\n  position: relative;\n}\n.wrapper .reacts-comments .reacts .majorities .major-react[data-v-ff5f586a], * .reacts-comments .reacts .majorities .major-react[data-v-ff5f586a] {\n  width: 25px;\n  height: 25px;\n  border-radius: 50px;\n  padding: 4px;\n  background-color: white;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  position: absolute;\n}\n.wrapper .reacts-comments .reacts .majorities .major-react .reacts-count[data-v-ff5f586a], * .reacts-comments .reacts .majorities .major-react .reacts-count[data-v-ff5f586a] {\n  position: absolute;\n  padding-left: 10px;\n}\n.wrapper .reacts-comments .reacts .majorities .first[data-v-ff5f586a], * .reacts-comments .reacts .majorities .first[data-v-ff5f586a] {\n  z-index: 4;\n}\n.wrapper .reacts-comments .reacts .majorities .second[data-v-ff5f586a], * .reacts-comments .reacts .majorities .second[data-v-ff5f586a] {\n  z-index: 3;\n  transform: translateX(18px);\n}\n.wrapper .reacts-comments .reacts .majorities .third[data-v-ff5f586a], * .reacts-comments .reacts .majorities .third[data-v-ff5f586a] {\n  z-index: 2;\n  transform: translateX(35px);\n}\n.wrapper .reacts-comments .reacts .reacts-count[data-v-ff5f586a], * .reacts-comments .reacts .reacts-count[data-v-ff5f586a] {\n  margin-left: 20px;\n}\n.wrapper .reacts-comments .modal-reactors[data-v-ff5f586a], * .reacts-comments .modal-reactors[data-v-ff5f586a] {\n  position: fixed;\n  top: 0;\n  left: 0;\n  height: 100vh;\n  width: 100%;\n  background-color: rgba(0, 0, 0, 0.4);\n  z-index: 10;\n}\n.wrapper .reacts-comments .modal-reactors .reactors[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors[data-v-ff5f586a] {\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  width: 60%;\n  height: 85%;\n  background-color: white;\n}\n.wrapper .reacts-comments .modal-reactors .reactors hr[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors hr[data-v-ff5f586a] {\n  margin: 0;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .exit-container[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .exit-container[data-v-ff5f586a] {\n  display: flex;\n  justify-content: flex-start;\n  align-items: center;\n  padding: 18px 25px;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .exit-container .text[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .exit-container .text[data-v-ff5f586a] {\n  margin-left: 10px;\n  font-size: 1.3rem;\n  font-weight: 700;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .react-icon[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .react-icon[data-v-ff5f586a] {\n  padding: 0 25px;\n  display: flex;\n  justify-content: flex-start;\n  align-items: center;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .react-icon .all[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .react-icon .all[data-v-ff5f586a] {\n  margin-right: 35px;\n  padding: 18px 10px;\n  text-align: center;\n  height: 100%;\n  cursor: pointer;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .react-icon .img-container[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .react-icon .img-container[data-v-ff5f586a] {\n  display: flex;\n  align-items: center;\n  margin-right: 40px;\n  padding: 18px 10px;\n  text-align: center;\n  height: 100%;\n  cursor: pointer;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .react-icon .show-border-b[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .react-icon .show-border-b[data-v-ff5f586a] {\n  border-bottom: 2px solid #1B65F2;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .all-reactors[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .all-reactors[data-v-ff5f586a] {\n  padding: 0 25px;\n  padding-top: 35px;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .all-reactors .user[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .all-reactors .user[data-v-ff5f586a] {\n  margin-bottom: 25px;\n  display: flex;\n  align-items: center;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .all-reactors .user .pic[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .all-reactors .user .pic[data-v-ff5f586a] {\n  border-radius: 50%;\n  background-size: cover;\n  background-position: center;\n  width: 40px;\n  height: 40px;\n  position: relative;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .all-reactors .user .pic img[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .all-reactors .user .pic img[data-v-ff5f586a] {\n  display: absolute;\n  right: 0;\n  bottom: 0;\n  transform: translate(125%, 125%);\n}\n.wrapper .reacts-comments .modal-reactors .reactors .all-reactors .user a[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .all-reactors .user a[data-v-ff5f586a] {\n  text-decoration: none;\n  color: black;\n  font-size: 1.1rem;\n  margin-left: 30px;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .people[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .people[data-v-ff5f586a] {\n  padding: 0 25px;\n  padding-top: 35px;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .people .user[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .people .user[data-v-ff5f586a] {\n  margin-bottom: 25px;\n  display: flex;\n  align-items: center;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .people .user .pic[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .people .user .pic[data-v-ff5f586a] {\n  border-radius: 50%;\n  background-size: cover;\n  background-position: center;\n  width: 40px;\n  height: 40px;\n  position: relative;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .people .user .pic img[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .people .user .pic img[data-v-ff5f586a] {\n  display: absolute;\n  right: 0;\n  bottom: 0;\n  transform: translate(125%, 125%);\n}\n.wrapper .reacts-comments .modal-reactors .reactors .people .user a[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .people .user a[data-v-ff5f586a] {\n  text-decoration: none;\n  color: black;\n  font-size: 1.1rem;\n  margin-left: 30px;\n}\n.wrapper .set-react-comment[data-v-ff5f586a], * .set-react-comment[data-v-ff5f586a] {\n  display: flex;\n  justify-content: space-between;\n  font-weight: bold;\n  padding: 0 20px;\n}\n.wrapper .set-react-comment > div[data-v-ff5f586a], * .set-react-comment > div[data-v-ff5f586a] {\n  padding: 15px 5px;\n  cursor: pointer;\n}\n.wrapper .set-react-comment > div[data-v-ff5f586a]:hover, * .set-react-comment > div[data-v-ff5f586a]:hover {\n  background-color: rgba(0, 0, 0, 0.1);\n}\n.wrapper .set-react-comment .like[data-v-ff5f586a], * .set-react-comment .like[data-v-ff5f586a] {\n  position: relative;\n  cursor: pointer;\n}\n.wrapper .set-react-comment .like .reacts-icons[data-v-ff5f586a], * .set-react-comment .like .reacts-icons[data-v-ff5f586a] {\n  position: absolute;\n  top: 5px;\n  left: -15px;\n  transform: translateY(-100%);\n  transition: 0.3s ease-in;\n  z-index: 6;\n  background-color: white;\n  box-shadow: 0 0 5px rgba(0, 0, 0, 0.7);\n  padding: 10px 15px;\n  border-radius: 50px;\n  display: flex;\n}\n.wrapper .set-react-comment .like .reacts-icons div[data-v-ff5f586a], * .set-react-comment .like .reacts-icons div[data-v-ff5f586a] {\n  margin: 0 10px;\n  font-size: 1.2rem;\n  font-weight: 700;\n  transition: 0.3s ease-in;\n}\n.wrapper .set-react-comment .like .reacts-icons div[data-v-ff5f586a]:hover, * .set-react-comment .like .reacts-icons div[data-v-ff5f586a]:hover {\n  transform: scale(1.2);\n}\n.wrapper .set-react-comment .like .reacts-icons .like-icon[data-v-ff5f586a]:hover, * .set-react-comment .like .reacts-icons .like-icon[data-v-ff5f586a]:hover {\n  color: blue;\n}\n.wrapper .set-react-comment .like .react[data-v-ff5f586a], * .set-react-comment .like .react[data-v-ff5f586a] {\n  font-weight: bold;\n  letter-spacing: 2px;\n  font-size: 1.2rem;\n}\n.wrapper .set-react-comment .like .react-Like[data-v-ff5f586a], * .set-react-comment .like .react-Like[data-v-ff5f586a] {\n  color: #119CF6;\n}\n.wrapper .set-react-comment .like .react-Love[data-v-ff5f586a], * .set-react-comment .like .react-Love[data-v-ff5f586a] {\n  color: #F9627B;\n}\n.wrapper .set-react-comment .like .react-Haha[data-v-ff5f586a], .wrapper .set-react-comment .like .react-Haha[data-v-ff5f586a], .wrapper .set-react-comment .like .react-Wow[data-v-ff5f586a], .wrapper .set-react-comment .like .react-Sad[data-v-ff5f586a], .wrapper .set-react-comment .like .react-Angry[data-v-ff5f586a], * .set-react-comment .like .react-Haha[data-v-ff5f586a], * .set-react-comment .like .react-Haha[data-v-ff5f586a], * .set-react-comment .like .react-Wow[data-v-ff5f586a], * .set-react-comment .like .react-Sad[data-v-ff5f586a], * .set-react-comment .like .react-Angry[data-v-ff5f586a] {\n  color: #FCDB64;\n}", ""]);
+exports.push([module.i, ".wrapper[data-v-ff5f586a], *[data-v-ff5f586a] {\n  box-sizing: border-box;\n}\n.wrapper > .comments[data-v-ff5f586a], * > .comments[data-v-ff5f586a] {\n  border-top: 2px solid #9C9C9C;\n  padding: 20px;\n}\n.wrapper > .comments .comment[data-v-ff5f586a], * > .comments .comment[data-v-ff5f586a] {\n  display: flex;\n  margin-bottom: 20px;\n}\n.wrapper > .comments .comment .avatar[data-v-ff5f586a], * > .comments .comment .avatar[data-v-ff5f586a] {\n  background-position: center;\n  background-size: cover;\n  background-repeat: no-repeat;\n  border-radius: 50%;\n  margin-right: 15px;\n}\n.wrapper > .comments .comment .user-comment-container[data-v-ff5f586a], * > .comments .comment .user-comment-container[data-v-ff5f586a] {\n  flex: 1;\n}\n.wrapper > .comments .comment .user-comment-container .user-comment[data-v-ff5f586a], * > .comments .comment .user-comment-container .user-comment[data-v-ff5f586a] {\n  background-color: #E2E2E2;\n  border-radius: 24px;\n  padding: 14px 18px;\n  display: inline-block;\n}\n.wrapper > .comments .comment .user-comment-container .user-comment .reset[data-v-ff5f586a], * > .comments .comment .user-comment-container .user-comment .reset[data-v-ff5f586a] {\n  margin: 0;\n  padding: 0;\n}\n.wrapper > .comments .comment .user-comment-container .user-comment .name[data-v-ff5f586a], * > .comments .comment .user-comment-container .user-comment .name[data-v-ff5f586a] {\n  font-weight: 600;\n  margin-bottom: 5px;\n}\n.wrapper > .comments .comment .user-comment-container .user-comment .comment[data-v-ff5f586a], * > .comments .comment .user-comment-container .user-comment .comment[data-v-ff5f586a] {\n  font-weight: 400;\n  font-size: 0.9rem;\n}\n.wrapper > .comments .comment .user-comment-container .others[data-v-ff5f586a], * > .comments .comment .user-comment-container .others[data-v-ff5f586a] {\n  display: flex;\n  margin-top: 5px;\n  margin-left: 20px;\n}\n.wrapper > .comments .comment .user-comment-container .others .time[data-v-ff5f586a], * > .comments .comment .user-comment-container .others .time[data-v-ff5f586a] {\n  color: #656565;\n  font-weight: bold;\n  margin-right: 25px;\n}\n.wrapper > .comments .comment .user-comment-container .others .like[data-v-ff5f586a], .wrapper > .comments .comment .user-comment-container .others .reply[data-v-ff5f586a], * > .comments .comment .user-comment-container .others .like[data-v-ff5f586a], * > .comments .comment .user-comment-container .others .reply[data-v-ff5f586a] {\n  color: #5A5A5A;\n  font-weight: 600;\n  margin-right: 25px;\n}\n.wrapper .reacts-comments[data-v-ff5f586a], * .reacts-comments[data-v-ff5f586a] {\n  display: flex;\n  justify-content: space-between;\n  padding: 15px 20px;\n}\n.wrapper .reacts-comments .reacts[data-v-ff5f586a], * .reacts-comments .reacts[data-v-ff5f586a] {\n  display: flex;\n  align-items: center;\n}\n.wrapper .reacts-comments .reacts .majorities[data-v-ff5f586a], * .reacts-comments .reacts .majorities[data-v-ff5f586a] {\n  display: flex;\n  align-items: center;\n  position: relative;\n}\n.wrapper .reacts-comments .reacts .majorities .major-react[data-v-ff5f586a], * .reacts-comments .reacts .majorities .major-react[data-v-ff5f586a] {\n  width: 25px;\n  height: 25px;\n  border-radius: 50px;\n  padding: 4px;\n  background-color: white;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  position: absolute;\n}\n.wrapper .reacts-comments .reacts .majorities .major-react .reacts-count[data-v-ff5f586a], * .reacts-comments .reacts .majorities .major-react .reacts-count[data-v-ff5f586a] {\n  position: absolute;\n  padding-left: 10px;\n}\n.wrapper .reacts-comments .reacts .majorities .first[data-v-ff5f586a], * .reacts-comments .reacts .majorities .first[data-v-ff5f586a] {\n  z-index: 4;\n}\n.wrapper .reacts-comments .reacts .majorities .second[data-v-ff5f586a], * .reacts-comments .reacts .majorities .second[data-v-ff5f586a] {\n  z-index: 3;\n  transform: translateX(18px);\n}\n.wrapper .reacts-comments .reacts .majorities .third[data-v-ff5f586a], * .reacts-comments .reacts .majorities .third[data-v-ff5f586a] {\n  z-index: 2;\n  transform: translateX(35px);\n}\n.wrapper .reacts-comments .reacts .reacts-count[data-v-ff5f586a], * .reacts-comments .reacts .reacts-count[data-v-ff5f586a] {\n  margin-left: 20px;\n}\n.wrapper .reacts-comments .modal-reactors[data-v-ff5f586a], * .reacts-comments .modal-reactors[data-v-ff5f586a] {\n  position: fixed;\n  top: 0;\n  left: 0;\n  height: 100vh;\n  width: 100%;\n  background-color: rgba(0, 0, 0, 0.4);\n  z-index: 10;\n}\n.wrapper .reacts-comments .modal-reactors .reactors[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors[data-v-ff5f586a] {\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  width: 60%;\n  height: 85%;\n  background-color: white;\n}\n.wrapper .reacts-comments .modal-reactors .reactors hr[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors hr[data-v-ff5f586a] {\n  margin: 0;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .exit-container[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .exit-container[data-v-ff5f586a] {\n  display: flex;\n  justify-content: flex-start;\n  align-items: center;\n  padding: 18px 25px;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .exit-container .text[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .exit-container .text[data-v-ff5f586a] {\n  margin-left: 10px;\n  font-size: 1.3rem;\n  font-weight: 700;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .react-icon[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .react-icon[data-v-ff5f586a] {\n  padding: 0 25px;\n  display: flex;\n  justify-content: flex-start;\n  align-items: center;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .react-icon .all[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .react-icon .all[data-v-ff5f586a] {\n  margin-right: 35px;\n  padding: 18px 10px;\n  text-align: center;\n  height: 100%;\n  cursor: pointer;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .react-icon .img-container[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .react-icon .img-container[data-v-ff5f586a] {\n  display: flex;\n  align-items: center;\n  margin-right: 40px;\n  padding: 18px 10px;\n  text-align: center;\n  height: 100%;\n  cursor: pointer;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .react-icon .show-border-b[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .react-icon .show-border-b[data-v-ff5f586a] {\n  border-bottom: 2px solid #1B65F2;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .all-reactors[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .all-reactors[data-v-ff5f586a] {\n  padding: 0 25px;\n  padding-top: 35px;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .all-reactors .user[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .all-reactors .user[data-v-ff5f586a] {\n  margin-bottom: 25px;\n  display: flex;\n  align-items: center;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .all-reactors .user .pic[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .all-reactors .user .pic[data-v-ff5f586a] {\n  border-radius: 50%;\n  background-size: cover;\n  background-position: center;\n  width: 40px;\n  height: 40px;\n  position: relative;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .all-reactors .user .pic img[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .all-reactors .user .pic img[data-v-ff5f586a] {\n  display: absolute;\n  right: 0;\n  bottom: 0;\n  transform: translate(125%, 125%);\n}\n.wrapper .reacts-comments .modal-reactors .reactors .all-reactors .user a[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .all-reactors .user a[data-v-ff5f586a] {\n  text-decoration: none;\n  color: black;\n  font-size: 1.1rem;\n  margin-left: 30px;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .people[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .people[data-v-ff5f586a] {\n  padding: 0 25px;\n  padding-top: 35px;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .people .user[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .people .user[data-v-ff5f586a] {\n  margin-bottom: 25px;\n  display: flex;\n  align-items: center;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .people .user .pic[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .people .user .pic[data-v-ff5f586a] {\n  border-radius: 50%;\n  background-size: cover;\n  background-position: center;\n  width: 40px;\n  height: 40px;\n  position: relative;\n}\n.wrapper .reacts-comments .modal-reactors .reactors .people .user .pic img[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .people .user .pic img[data-v-ff5f586a] {\n  display: absolute;\n  right: 0;\n  bottom: 0;\n  transform: translate(125%, 125%);\n}\n.wrapper .reacts-comments .modal-reactors .reactors .people .user a[data-v-ff5f586a], * .reacts-comments .modal-reactors .reactors .people .user a[data-v-ff5f586a] {\n  text-decoration: none;\n  color: black;\n  font-size: 1.1rem;\n  margin-left: 30px;\n}\n.wrapper .reacts-comments .comments-count[data-v-ff5f586a], * .reacts-comments .comments-count[data-v-ff5f586a] {\n  cursor: pointer;\n}\n.wrapper .set-react-comment[data-v-ff5f586a], * .set-react-comment[data-v-ff5f586a] {\n  display: flex;\n  justify-content: space-between;\n  font-weight: bold;\n  padding: 0 20px;\n}\n.wrapper .set-react-comment > div[data-v-ff5f586a], * .set-react-comment > div[data-v-ff5f586a] {\n  padding: 15px 5px;\n  cursor: pointer;\n}\n.wrapper .set-react-comment > div[data-v-ff5f586a]:hover, * .set-react-comment > div[data-v-ff5f586a]:hover {\n  background-color: rgba(0, 0, 0, 0.1);\n}\n.wrapper .set-react-comment .like[data-v-ff5f586a], * .set-react-comment .like[data-v-ff5f586a] {\n  position: relative;\n  cursor: pointer;\n}\n.wrapper .set-react-comment .like .reacts-icons[data-v-ff5f586a], * .set-react-comment .like .reacts-icons[data-v-ff5f586a] {\n  position: absolute;\n  top: 5px;\n  left: -15px;\n  transform: translateY(-100%);\n  transition: 0.3s ease-in;\n  z-index: 6;\n  background-color: white;\n  box-shadow: 0 0 5px rgba(0, 0, 0, 0.7);\n  padding: 10px 15px;\n  border-radius: 50px;\n  display: flex;\n}\n.wrapper .set-react-comment .like .reacts-icons div[data-v-ff5f586a], * .set-react-comment .like .reacts-icons div[data-v-ff5f586a] {\n  margin: 0 10px;\n  font-size: 1.2rem;\n  font-weight: 700;\n  transition: 0.3s ease-in;\n}\n.wrapper .set-react-comment .like .reacts-icons div[data-v-ff5f586a]:hover, * .set-react-comment .like .reacts-icons div[data-v-ff5f586a]:hover {\n  transform: scale(1.2);\n}\n.wrapper .set-react-comment .like .reacts-icons .like-icon[data-v-ff5f586a]:hover, * .set-react-comment .like .reacts-icons .like-icon[data-v-ff5f586a]:hover {\n  color: blue;\n}\n.wrapper .set-react-comment .like .react[data-v-ff5f586a], * .set-react-comment .like .react[data-v-ff5f586a] {\n  font-weight: bold;\n  letter-spacing: 2px;\n  font-size: 1.2rem;\n}\n.wrapper .set-react-comment .like .react-Like[data-v-ff5f586a], * .set-react-comment .like .react-Like[data-v-ff5f586a] {\n  color: #119CF6;\n}\n.wrapper .set-react-comment .like .react-Love[data-v-ff5f586a], * .set-react-comment .like .react-Love[data-v-ff5f586a] {\n  color: #F9627B;\n}\n.wrapper .set-react-comment .like .react-Haha[data-v-ff5f586a], .wrapper .set-react-comment .like .react-Haha[data-v-ff5f586a], .wrapper .set-react-comment .like .react-Wow[data-v-ff5f586a], .wrapper .set-react-comment .like .react-Sad[data-v-ff5f586a], .wrapper .set-react-comment .like .react-Angry[data-v-ff5f586a], * .set-react-comment .like .react-Haha[data-v-ff5f586a], * .set-react-comment .like .react-Haha[data-v-ff5f586a], * .set-react-comment .like .react-Wow[data-v-ff5f586a], * .set-react-comment .like .react-Sad[data-v-ff5f586a], * .set-react-comment .like .react-Angry[data-v-ff5f586a] {\n  color: #FCDB64;\n}\n.wrapper .put-comment[data-v-ff5f586a], * .put-comment[data-v-ff5f586a] {\n  display: flex;\n  flex-direction: column;\n  padding: 10px;\n}\n.wrapper .put-comment textarea[data-v-ff5f586a], * .put-comment textarea[data-v-ff5f586a] {\n  height: 5.5rem;\n  outline: none;\n  border: none;\n  resize: none;\n  padding: 6px;\n  border-radius: 10px;\n  background-color: #F0F0F0;\n}\n.wrapper .put-comment .btn-wrapper[data-v-ff5f586a], * .put-comment .btn-wrapper[data-v-ff5f586a] {\n  margin-top: 10px;\n  display: flex;\n  align-items: center;\n  justify-content: flex-end;\n  padding: 0;\n}", ""]);
 
 // exports
 
@@ -71497,8 +71620,46 @@ var render = function() {
                         _c(
                           "a",
                           {
+                            directives: [
+                              {
+                                name: "show",
+                                rawName: "v-show",
+                                value: post.post_type === "post",
+                                expression: "post.post_type==='post'"
+                              }
+                            ],
                             attrs: {
                               href: "/users/" + _vm.id + "/posts/" + post.id
+                            }
+                          },
+                          [
+                            _c("img", {
+                              directives: [
+                                {
+                                  name: "show",
+                                  rawName: "v-show",
+                                  value: index === 0,
+                                  expression: "index===0"
+                                }
+                              ],
+                              attrs: { src: "/storage/" + image.image, alt: "" }
+                            })
+                          ]
+                        ),
+                        _vm._v(" "),
+                        _c(
+                          "a",
+                          {
+                            directives: [
+                              {
+                                name: "show",
+                                rawName: "v-show",
+                                value: post.post_type === "profile",
+                                expression: "post.post_type==='profile'"
+                              }
+                            ],
+                            attrs: {
+                              href: "/user/" + _vm.id + "/profile-picture/"
                             }
                           },
                           [
@@ -71528,7 +71689,8 @@ var render = function() {
                     "modal-post-id": _vm.modalPostId,
                     "react-name": _vm.reactName,
                     "all-reactors": _vm.allReactors,
-                    "is-not-auth": _vm.isNotAuth
+                    "is-not-auth": _vm.isNotAuth,
+                    "show-comment-box-index": _vm.showCommentBoxIndex
                   },
                   on: {
                     showReactorsModal: _vm.showReactorsModal,
@@ -71539,7 +71701,9 @@ var render = function() {
                     hideIcons: _vm.hideIcons,
                     reactPost: _vm.reactPost,
                     unreact: _vm.unreact,
-                    showComments: _vm.showComments
+                    showComments: _vm.showComments,
+                    showCommentBox: _vm.showCommentBox,
+                    postComment: _vm.postComment
                   }
                 })
               ],
@@ -72666,70 +72830,101 @@ var render = function() {
         ]
       ),
       _vm._v(" "),
-      _c(
-        "div",
-        {
-          directives: [
+      _vm.post.comments && _vm.post.post_type === "post"
+        ? _c(
+            "div",
             {
-              name: "show",
-              rawName: "v-show",
-              value: _vm.post.comments,
-              expression: "post.comments"
-            }
-          ],
-          staticClass: "comments-count",
-          on: {
-            click: function($event) {
-              return _vm.showComments(_vm.post.id)
-            }
-          }
-        },
-        [_vm._v(_vm._s(_vm.post.comments.length + " comments"))]
-      )
+              staticClass: "comments-count",
+              on: {
+                click: function($event) {
+                  return _vm.showComments(_vm.post.id)
+                }
+              }
+            },
+            [_vm._v(_vm._s(_vm.post.comments.length + " comments"))]
+          )
+        : _vm._e()
     ]),
     _vm._v(" "),
-    _c(
-      "div",
-      {
-        directives: [
-          {
-            name: "show",
-            rawName: "v-show",
-            value: _vm.post.show_comments,
-            expression: "post.show_comments"
-          }
-        ],
-        staticClass: "comments"
-      },
-      _vm._l(_vm.post.comments, function(comment, index) {
-        return _c("div", { key: index, staticClass: "comment" }, [
-          _c("div", { staticClass: "avatar" }),
-          _vm._v(" "),
-          _c("div", { staticClass: "user-comment-container" }, [
-            _c("div", { staticClass: "user-comment" }, [
-              _c("p", { staticClass: "name reset" }, [
-                _vm._v(_vm._s(comment.name))
-              ]),
-              _vm._v(" "),
-              _c("p", { staticClass: "comment reset" }, [
-                _vm._v(_vm._s(comment.comment))
-              ])
-            ]),
+    _vm.post.show_comments && _vm.post.post_type === "post"
+      ? _c(
+          "div",
+          { staticClass: "comments" },
+          [
+            _vm._l(_vm.post.comments, function(comment, index) {
+              return _c(
+                "div",
+                {
+                  directives: [
+                    {
+                      name: "show",
+                      rawName: "v-show",
+                      value: index < _vm.pageLimit,
+                      expression: "index < pageLimit"
+                    }
+                  ],
+                  key: index,
+                  staticClass: "comment"
+                },
+                [
+                  _c("div", {
+                    staticClass: "avatar",
+                    style: {
+                      backgroundImage:
+                        "url(" + ("/storage/" + comment.avatar_url) + ")"
+                    }
+                  }),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "user-comment-container" }, [
+                    _c("div", { staticClass: "user-comment" }, [
+                      _c("p", { staticClass: "name reset" }, [
+                        _vm._v(_vm._s(comment.name))
+                      ]),
+                      _vm._v(" "),
+                      _c("p", { staticClass: "comment reset" }, [
+                        _vm._v(_vm._s(comment.comment))
+                      ])
+                    ]),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "others" }, [
+                      _c("div", { staticClass: "time" }, [
+                        _vm._v(_vm._s(_vm.formatDate(comment.created_at)))
+                      ]),
+                      _vm._v(" "),
+                      _c("div", { staticClass: "like" }, [_vm._v("Like")]),
+                      _vm._v(" "),
+                      _c("div", { staticClass: "reply" }, [_vm._v("Reply")])
+                    ])
+                  ])
+                ]
+              )
+            }),
             _vm._v(" "),
-            _c("div", { staticClass: "others" }, [
-              _c("div", { staticClass: "time" }, [
-                _vm._v(_vm._s(_vm.formatDate(comment.created_at)))
-              ]),
-              _vm._v(" "),
-              _c("div", { staticClass: "like" }, [_vm._v("Like")]),
-              _vm._v(" "),
-              _c("div", { staticClass: "reply" }, [_vm._v("Reply")])
-            ])
-          ])
-        ])
-      }),
-      0
-    ),
+            _c(
+              "div",
+              {
+                directives: [
+                  {
+                    name: "show",
+                    rawName: "v-show",
+                    value: _vm.pageLimit < _vm.post.comments.length,
+                    expression: "pageLimit < post.comments.length"
+                  }
+                ],
+                staticStyle: {
+                  "text-align": "center",
+                  cursor: "pointer",
+                  "font-weight": "600",
+                  color: "rgba(0,0,0,0.6)"
+                },
+                on: { click: _vm.loadMoreComment }
+              },
+              [_vm._v("\n      load more comments\n    ")]
+            )
+          ],
+          2
+        )
+      : _vm._e(),
     _vm._v(" "),
     _c("hr", { staticClass: "mx-2 my-0" }),
     _vm._v(" "),
@@ -72782,7 +72977,8 @@ var render = function() {
                         return _vm.reactPost(
                           "Like",
                           _vm.post.id,
-                          _vm.post.post_type
+                          _vm.post.post_type,
+                          _vm.post.show_comments
                         )
                       }
                     }
@@ -72805,7 +73001,8 @@ var render = function() {
                         return _vm.reactPost(
                           "Love",
                           _vm.post.id,
-                          _vm.post.post_type
+                          _vm.post.post_type,
+                          _vm.post.show_comments
                         )
                       }
                     }
@@ -72828,7 +73025,8 @@ var render = function() {
                         return _vm.reactPost(
                           "Care",
                           _vm.post.id,
-                          _vm.post.post_type
+                          _vm.post.post_type,
+                          _vm.post.show_comments
                         )
                       }
                     }
@@ -72851,7 +73049,8 @@ var render = function() {
                         return _vm.reactPost(
                           "Haha",
                           _vm.post.id,
-                          _vm.post.post_type
+                          _vm.post.post_type,
+                          _vm.post.show_comments
                         )
                       }
                     }
@@ -72874,7 +73073,8 @@ var render = function() {
                         return _vm.reactPost(
                           "Wow",
                           _vm.post.id,
-                          _vm.post.post_type
+                          _vm.post.post_type,
+                          _vm.post.show_comments
                         )
                       }
                     }
@@ -72897,7 +73097,8 @@ var render = function() {
                         return _vm.reactPost(
                           "Sad",
                           _vm.post.id,
-                          _vm.post.post_type
+                          _vm.post.post_type,
+                          _vm.post.show_comments
                         )
                       }
                     }
@@ -72920,7 +73121,8 @@ var render = function() {
                         return _vm.reactPost(
                           "Angry",
                           _vm.post.id,
-                          _vm.post.post_type
+                          _vm.post.post_type,
+                          _vm.post.show_comments
                         )
                       }
                     }
@@ -72943,7 +73145,11 @@ var render = function() {
                     class: "react react-" + _vm.post.chosen_react,
                     on: {
                       click: function($event) {
-                        return _vm.unreact(_vm.post.id, _vm.post.post_type)
+                        return _vm.unreact(
+                          _vm.post.id,
+                          _vm.post.post_type,
+                          _vm.post.show_comments
+                        )
                       }
                     }
                   },
@@ -72978,7 +73184,8 @@ var render = function() {
                         return _vm.reactPost(
                           "Like",
                           _vm.post.id,
-                          _vm.post.post_type
+                          _vm.post.post_type,
+                          _vm.post.show_comments
                         )
                       }
                     }
@@ -72995,9 +73202,92 @@ var render = function() {
           ]
         ),
         _vm._v(" "),
-        _c("div", { staticClass: "comment" }, [_vm._v("COMMENT")]),
+        _c(
+          "div",
+          {
+            staticClass: "comment",
+            on: {
+              click: function($event) {
+                return _vm.showCommentBox(_vm.post.id)
+              }
+            }
+          },
+          [_vm._v("COMMENT")]
+        ),
         _vm._v(" "),
         _c("div", { staticClass: "share" }, [_vm._v("SHARE")])
+      ]
+    ),
+    _vm._v(" "),
+    _c(
+      "div",
+      {
+        directives: [
+          {
+            name: "show",
+            rawName: "v-show",
+            value: _vm.showCommentBoxIndex === _vm.post.id,
+            expression: "showCommentBoxIndex === post.id"
+          }
+        ],
+        staticClass: "put-comment"
+      },
+      [
+        _c("textarea", {
+          directives: [
+            {
+              name: "model",
+              rawName: "v-model",
+              value: _vm.userComment,
+              expression: "userComment"
+            }
+          ],
+          staticClass: "comment-box",
+          attrs: {
+            type: "text",
+            name: "body",
+            placeholder: "Comment something"
+          },
+          domProps: { value: _vm.userComment },
+          on: {
+            keydown: function($event) {
+              if (
+                !$event.type.indexOf("key") &&
+                _vm._k($event.keyCode, "enter", 13, $event.key, "Enter")
+              ) {
+                return null
+              }
+              $event.preventDefault()
+              return _vm.postComment(_vm.post.id, _vm.post.show_comments)
+            },
+            input: function($event) {
+              if ($event.target.composing) {
+                return
+              }
+              _vm.userComment = $event.target.value
+            }
+          }
+        }),
+        _vm._v(" "),
+        _c("div", { staticClass: "btn-wrapper" }, [
+          _c(
+            "button",
+            {
+              staticClass: "btn btn-primary",
+              attrs: { type: "button" },
+              on: {
+                click: function($event) {
+                  return _vm.postComment(
+                    _vm.post.id,
+                    _vm.post.show_comments,
+                    _vm.post.comments.length
+                  )
+                }
+              }
+            },
+            [_vm._v("comment")]
+          )
+        ])
       ]
     )
   ])

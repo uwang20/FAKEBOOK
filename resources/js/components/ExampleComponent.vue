@@ -59,7 +59,8 @@
                         </div>
                         <div class="image" v-show="post.images">
                             <div v-show="post.images" class="image-post" v-for="(image,index) in post.images" :key="index">
-                              <a :href="'/users/'+id+'/posts/'+post.id" ><img v-show="index===0" :src="'/storage/' + image.image" alt=""></a>
+                              <a v-show="post.post_type==='post'" :href="'/users/'+id+'/posts/'+post.id" ><img v-show="index===0" :src="'/storage/' + image.image" alt=""></a>
+                              <a v-show="post.post_type==='profile'" :href="'/user/'+id+'/profile-picture/'" ><img v-show="index===0" :src="'/storage/' + image.image" alt=""></a>
                             </div>
                         </div>
                         <!-- REACT/COMMENT SECTION -->
@@ -69,6 +70,7 @@
                                       :react-name="reactName"
                                       :all-reactors="allReactors"
                                       :is-not-auth="isNotAuth"
+                                      :show-comment-box-index="showCommentBoxIndex"
                                       @showReactorsModal="showReactorsModal"
                                       @closeModal="closeModal"
                                       @showAllReactors="showAllReactors"
@@ -78,6 +80,8 @@
                                       @reactPost="reactPost"
                                       @unreact="unreact"
                                       @showComments="showComments"
+                                      @showCommentBox="showCommentBox"
+                                      @postComment="postComment"
                         ></ReactComment >
                       <!-- END   -->
                     </div>
@@ -145,6 +149,7 @@
                 modalPostId: null,
                 reactName: null,
                 allReactors: 'all',
+                showCommentBoxIndex: null,
             }
         },
         computed: {
@@ -278,7 +283,7 @@
               },50)
 
             },
-            reactPost(choseReact,postId,postType){
+            reactPost(choseReact,postId,postType,commentBool){
               const config = {
                   headers: {
                       'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -292,6 +297,11 @@
                   },config)
                       .then(res => {
                         this.posts = res.data
+                        this.posts.forEach(post => {
+                          if(post.id === postId){
+                            return post.show_comments = commentBool
+                          }
+                        })
                       })
                   break
                 case 'profile':
@@ -315,7 +325,7 @@
 
               this.showReactIcons = null
             },
-            unreact(postId,postType){
+            unreact(postId,postType,commentBool){
               const config = {
                   headers: {
                       'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -327,6 +337,11 @@
                   axios.delete(`/post/unreact/${postId}`,config)
                       .then(res => {
                         this.posts = res.data
+                        this.posts.forEach(post => {
+                          if(post.id === postId){
+                            return post.show_comments = commentBool
+                          }
+                        })
                       })
                   break
                 case 'profile':
@@ -367,9 +382,44 @@
             showComments(id){
               this.posts.forEach(post => {
                 if(post.id === id){
-                  return post.show_comments = true
+                  return post.show_comments = !post.show_comments
                 }
               })
+            },
+            showCommentBox(id){
+              this.showCommentBoxIndex = id
+            },
+            async postComment(id,comment,commentBool){
+              if(!comment.trim().length) return
+              const config = {
+                  headers: {
+                      'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                  }
+              }
+
+              const commentResponse = await axios.post(`/post/${id}/comment`,{
+                comment: comment.trim(),
+                comment_by: this.authUser
+              },config)
+
+              const responseData = await commentResponse.data
+              const getPosts = await axios.get(`/users/${parseInt(this.userId.id)}/posts`)
+              const postsData = await getPosts.data
+              this.posts = postsData
+              this.posts.forEach(post => {
+                if(post.id === id){
+                  return post.show_comments = commentBool
+                }
+              })
+              // this.posts.forEach(post => {
+              //   if(post.id === id){
+              //     post.comments.push({
+              //       comment: responseData.comment,
+              //       name:  responseData.name
+              //     })
+              //   }
+              // })
+
             }
         }
     }

@@ -101,3 +101,6 @@ Route::get('/user/{user}/cover-avatar', 'ProfilePictureController@ajaxCoverAvata
 Route::get('/users/{user}/posts/{post}', 'ProfilePictureController@show')->name('posts.index');
 
 Route::get('/users/{user}/post/{post}', 'ProfilePictureController@ajaxShowPost')->name('posts.ajaxShow');
+
+//COMMENT
+Route::post('/post/{post}/comment', 'CommentController@postComment')->name('comment.postComment');
